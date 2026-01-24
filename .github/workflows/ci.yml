@@ -2,9 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 permissions:
   contents: read
@@ -13,15 +13,23 @@ jobs:
   backend:
     name: backend-test
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check backend exists
+        id: be
+        shell: bash
+        run: |
+          if [ -f "backend/pom.xml" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Java
+        if: steps.be.outputs.exists == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -29,20 +37,34 @@ jobs:
           cache: maven
 
       - name: Test (Maven)
+        if: steps.be.outputs.exists == 'true'
+        working-directory: backend
         run: mvn -B -q test
+
+      - name: Backend not initialized (skipped)
+        if: steps.be.outputs.exists != 'true'
+        run: echo "backend/pom.xml not found -> skipping backend job"
 
   frontend:
     name: frontend-test
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check frontend exists
+        id: fe
+        shell: bash
+        run: |
+          if [ -f "frontend/package.json" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Node
+        if: steps.fe.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -50,13 +72,25 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install
+        if: steps.fe.outputs.exists == 'true'
+        working-directory: frontend
         run: npm ci
 
-      - name: Lint (if exists)
-        run: npm run lint --if-present
+      - name: Lint
+        if: steps.fe.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm run lint
 
       - name: Test (if exists)
+        if: steps.fe.outputs.exists == 'true'
+        working-directory: frontend
         run: npm test --if-present
 
       - name: Build
+        if: steps.fe.outputs.exists == 'true'
+        working-directory: frontend
         run: npm run build
+
+      - name: Frontend not initialized (skipped)
+        if: steps.fe.outputs.exists != 'true'
+        run: echo "frontend/package.json not found -> skipping frontend job"
