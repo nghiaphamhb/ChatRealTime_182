@@ -19,7 +19,7 @@ export default function Header({ handleOpen }) {
         <Typography
           sx={{ fontWeight: 900, color: "#fff", fontSize: 28, ml: 2 }}
         >
-          Rainbow Chat
+          Galaxy Chat
         </Typography>
 
         <Box sx={{ display: "flex", gap: 4, ml: "auto", alignItems: "center" }}>

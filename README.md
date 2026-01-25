@@ -2,8 +2,6 @@
 
 A simple **realtime chat web application** built with **React (frontend)** and **Java Spring Boot (backend)** using **WebSocket + STOMP**.
 
-![wallpaper](https://www.icegif.com/wp-content/uploads/2024/04/nyan-cat-icegif-2.gif)
-
 ---
 
 ## 🚀 Features (MVP)
