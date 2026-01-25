@@ -1,4 +1,95 @@
 package vn.nhtw420.webchat.service;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import vn.nhtw420.webchat.domain.User;
+import vn.nhtw420.webchat.dto.request.CreateUserRequest;
+import vn.nhtw420.webchat.dto.request.UpdateUserRequest;
+import vn.nhtw420.webchat.dto.response.UserDto;
+import vn.nhtw420.webchat.repository.UserRepository;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
 public class UserService {
+
+    private final UserRepository userRepository;
+
+    public List<UserDto> getAllUsers() {
+        return toDtoList(userRepository.findAll());
+    }
+
+    public UserDto getUserById(String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return toDto(user);
+    }
+
+    public UserDto createUser(CreateUserRequest request) {
+        // 1) validate unique username
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new RuntimeException("Username already exists");
+        }
+
+        // 2) build entity
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setDisplayName(request.getDisplayName());
+        user.setPassword(request.getPassword());
+
+        User saved = userRepository.save(user);
+
+        return toDto(saved);
+    }
+
+    public UserDto getCurrentUser(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return toDto(user);
+    }
+
+    public UserDto updateUser(String id, UpdateUserRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (request.getDisplayName() != null) {
+            user.setDisplayName(request.getDisplayName());
+        }
+
+        if (request.getAvatarUrl() != null) {
+            user.setAvatarUrl(request.getAvatarUrl());
+        }
+
+        User updated = userRepository.save(user);
+        return toDto(updated);
+    }
+
+    public void deleteUser(String id) {
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("User not found");
+        }
+        userRepository.deleteById(id);
+    }
+
+    private UserDto toDto(User user) {
+        return new UserDto(
+                user.getId(),
+                user.getUsername(),
+                user.getDisplayName(),
+                user.getAvatarUrl(),
+                user.getLastSeenAt()
+        );
+    }
+
+    private List<UserDto> toDtoList(List<User> users) {
+        List<UserDto> result = new ArrayList<>(users.size());
+        for (User user : users) {
+            result.add(toDto(user));
+        }
+        return result;
+    }
 }

@@ -1,6 +1,15 @@
 package vn.nhtw420.webchat.domain;
 
-public enum ConversationRole {
+public enum MemberRole {
     ADMIN,
-    USER
+    MEMBER;
+
+    @Override
+    public String toString() {
+        return name();
+    }
+
+    public static MemberRole fromString(String role) {
+        return valueOf(role.toUpperCase());
+    }
 }

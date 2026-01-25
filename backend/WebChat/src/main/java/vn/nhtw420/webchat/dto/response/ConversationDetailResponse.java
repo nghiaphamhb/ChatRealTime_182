@@ -1,21 +1,23 @@
 package vn.nhtw420.webchat.dto.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import vn.nhtw420.webchat.domain.ConversationType;
-import vn.nhtw420.webchat.dto.ConversationMemberDto;
-
+import vn.nhtw420.webchat.domain.MemberRole;
 import java.time.Instant;
 import java.util.List;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class ConversationDetailDto {
+public class ConversationDetailResponse {
     private String id;
     private ConversationType type;
     private String title;
-    private List<ConversationMemberDto> members;
+    private List<MemberInfo> members;
     private Instant lastMessageAt;
+
+    @Data
+    public static class MemberInfo {
+        private String userId;
+        private String username;
+        private String displayName;
+        private MemberRole role;}
 }
