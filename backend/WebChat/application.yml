@@ -1,0 +1,15 @@
+server:
+  port: 8080
+
+jwt:
+  privateKey: ${JWT_PRIVATE_KEY}
+  expirationSeconds: ${JWT_EXPIRATION_SECONDS}
+
+spring:
+  application:
+    name: RainbowChat
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      auto-index-creation: true

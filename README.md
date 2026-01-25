@@ -5,6 +5,7 @@ A simple **realtime chat web application** built with **React (frontend)** and *
 ---
 
 ## 🚀 Features (MVP)
+
 - User authentication (JWT)
 - Direct & group conversations
 - Message history (pagination)
@@ -14,20 +15,21 @@ A simple **realtime chat web application** built with **React (frontend)** and *
 ---
 
 ## 🧱 Tech Stack
-- **Frontend:** React (Vite), MUI, STOMP client
-- **Backend:** Java 17, Spring Boot, Spring Security, WebSocket
-- **Database:** PostgreSQL
-- **Infra:** Docker, REST + WebSocket
 
+- **Frontend:** React (Vite), MUI, STOMP client
+- **Backend:** Java 21, Spring Boot, Spring Security, WebSocket
+- **Database:** MongoDB
+- **Infra:** Docker, REST + WebSocket
 
 ---
 
 ## ▶️ Run Locally
+
 ```bash
 docker-compose up -d
 cd backend && ./mvnw spring-boot:run
 cd frontend && npm install && npm run dev
-````
+```
 
 ---
 
@@ -36,7 +38,7 @@ cd frontend && npm install && npm run dev
 **Backend**
 
 ```
-DB_URL=jdbc:postgresql://localhost:5432/chat
+DB_URL=mongodb://localhost:27017/rainbowchat
 JWT_SECRET=secret
 ```
 
