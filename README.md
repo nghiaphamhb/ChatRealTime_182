@@ -19,7 +19,7 @@ A simple **realtime chat web application** built with **React (frontend)** and *
 ## 🧱 Tech Stack
 
 - **Frontend:** React (Vite), MUI, STOMP client
-- **Backend:** Java 17, Spring Boot, Spring Security, WebSocket
+- **Backend:** Java 21, Spring Boot, Spring Security, WebSocket
 - **Database:** MongoDB
 - **Infra:** Docker, REST + WebSocket
 
@@ -40,7 +40,7 @@ cd frontend && npm install && npm run dev
 **Backend**
 
 ```
-DB_URL=jdbc:postgresql://localhost:5432/chat
+DB_URL=mongodb://localhost:27017/rainbowchat
 JWT_SECRET=secret
 ```
 
