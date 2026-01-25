@@ -17,6 +17,7 @@ import {
   Alert,
 } from "@mui/material";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import LoginIcon from "@mui/icons-material/Login";
 import CloseIcon from "@mui/icons-material/Close";
@@ -31,10 +32,13 @@ export default function AuthDialog({ open = false, handleClose }) {
   const colorText = "rgba(255,255,255,0.5)";
   const colorText_input = "#fff";
 
+  const navigate = useNavigate();
   const [isRegister, setRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  // const [ alert, setAlert ] = useState("");
+  const [alert, setAlert] = useState(null);
 
+  const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [repPassword, setRepPassword] = useState("");
 
@@ -42,9 +46,51 @@ export default function AuthDialog({ open = false, handleClose }) {
 
   const changeMode = () => {
     setRegister((prev) => !prev);
-    // setUsername("");
+    setUsername("");
+    setDisplayName("");
     setPassword("");
     setRepPassword("");
+  };
+
+  const submit = async () => {
+    setAlert(null);
+
+    const payload = isRegister
+      ? { displayName, username, password }
+      : { username, password };
+
+    const url = isRegister ? "/api/auth/register" : "/api/auth/login";
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      if (res.status === 403) {
+        setAlert({
+          type: "error",
+          msg: isRegister ? "This account already exists!" : "Login failed!",
+        });
+      } else {
+        setAlert({ type: "error", msg: "Server error" });
+      }
+      return;
+    }
+
+    const data = await res.json();
+    const token = data?.token;
+
+    setAlert({
+      type: "success",
+      msg: isRegister ? "Register successful!" : "Login successful!",
+    });
+
+    if (!isRegister) {
+      localStorage.setItem("token", token);
+      navigate("/home");
+    }
   };
 
   const unMatchPassword = isRegister && repPassword && repPassword !== password;
@@ -113,6 +159,8 @@ export default function AuthDialog({ open = false, handleClose }) {
                 borderBottomColor: colorText_input,
               },
             }}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
           />
         </Box>
       ) : (
@@ -140,6 +188,8 @@ export default function AuthDialog({ open = false, handleClose }) {
               borderBottomColor: colorText_input,
             },
           }}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
         />
       </Box>
 
@@ -258,15 +308,32 @@ export default function AuthDialog({ open = false, handleClose }) {
 
       <Button
         variant="contained"
-        sx={{ my: 3, borderRadius: 1 }}
+        sx={{
+          my: 3,
+          borderRadius: 1,
+          "&:active": {
+            background: "linear-gradient(135deg, #2F80ED 0%, #1CB5E0 100%)",
+          },
+        }}
         disabled={disableSubmit}
+        onClick={submit}
       >
         <LoginIcon sx={{ mr: 1 }} />
         {isRegister ? "Register" : "Login"}
       </Button>
 
-      {/* <Alert severity="success">Successful!</Alert>
-                <Alert severity="error">Something is wrong!</Alert> */}
+      {alert && (
+        <Alert
+          severity={alert.type}
+          sx={{
+            mb: 1,
+            borderRadius: 2,
+            opacity: 0.85,
+          }}
+        >
+          {alert.msg}
+        </Alert>
+      )}
 
       <Typography sx={{ mx: "auto", color: colorText }}>
         {isRegister ? "Already have an account?" : "No account yet?"}{" "}
