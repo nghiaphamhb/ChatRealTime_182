@@ -21,6 +21,7 @@ export default function ChatBox() {
         display: "flex",
         flexDirection: "column",
         backdropFilter: "blur(6px)",
+        opacity: 0.85,
       }}
     >
       {/* Chat header */}

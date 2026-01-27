@@ -1,7 +1,7 @@
 import LandingPage from "./pages/landingPage/LandingPage";
 import ChatPage from "./pages/chatPage/ChatPage";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import ProtectedRoute from "../security/ProtectedRoute";
+import ProtectedRoute from "./security/ProtectedRoute";
 
 export default function App() {
   return (

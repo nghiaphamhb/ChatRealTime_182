@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 
-import SideBar from "./SideBar";
+import SideBar from "./sideBar/SideBar";
 import ChatBox from "./ChatBox";
 
 export default function ChatPage() {
