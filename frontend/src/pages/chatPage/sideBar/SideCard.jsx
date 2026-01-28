@@ -1,6 +1,13 @@
 import { Avatar, Box, Stack, Typography } from "@mui/material";
 
-export default function SideCard({lastMsg, lastMsgAt, title, unreadCount, onClick, active }) {
+export default function SideCard({
+  lastMsg,
+  lastMsgAt,
+  title,
+  unreadCount,
+  onClick,
+  active,
+}) {
   return (
     <Box
       sx={{

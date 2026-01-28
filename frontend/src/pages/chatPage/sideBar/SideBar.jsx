@@ -1,11 +1,13 @@
-import {
-  Box,
-  Divider,
-} from "@mui/material";
+import { Box, Divider } from "@mui/material";
 import SideCard from "./sideCard";
 import SideHeader from "./SideHeader";
 
-export default function SideBar({list, clickCard, activeConv, createConversation}) {
+export default function SideBar({
+  list,
+  clickCard,
+  activeConv,
+  createConversation,
+}) {
   return (
     <Box
       sx={{
