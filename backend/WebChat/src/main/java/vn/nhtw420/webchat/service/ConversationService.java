@@ -8,6 +8,7 @@ import vn.nhtw420.webchat.dto.request.CreateConversationRequest;
 import vn.nhtw420.webchat.dto.response.ConversationDetailResponse;
 import vn.nhtw420.webchat.dto.response.ConversationListItemResponse;
 import vn.nhtw420.webchat.dto.response.CreateConversationResponse;
+import vn.nhtw420.webchat.exception.UserNotFoundException;
 import vn.nhtw420.webchat.repository.*;
 
 import java.util.*;
@@ -33,6 +34,17 @@ public class ConversationService {
             throw new IllegalArgumentException("DM conversation must have exactly 2 members");
         }
 
+        // Validate all users exist
+        List<User> users = userRepository.findAllById(allMemberIds);
+        if (users.size() != allMemberIds.size()) {
+            Set<String> foundIds = users.stream().map(User::getId).collect(Collectors.toSet());
+            String missingId = allMemberIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .findFirst()
+                    .orElseThrow();
+            throw new UserNotFoundException(missingId);
+        }
+
         // Check if DM already exists
         if (request.getType() == ConversationType.DM) {
             Optional<Conversation> existing = findExistingDM(allMemberIds.get(0), allMemberIds.get(1));
@@ -44,7 +56,24 @@ public class ConversationService {
         // Create conversation
         Conversation conversation = new Conversation();
         conversation.setType(request.getType());
-        conversation.setTitle(request.getTitle());
+
+        // Set title
+        if (request.getType() == ConversationType.DM) {
+            String otherUserId = allMemberIds.stream()
+                    .filter(id -> !id.equals(currentUserId))
+                    .findFirst()
+                    .orElseThrow();
+
+            User otherUser = users.stream()
+                    .filter(u -> u.getId().equals(otherUserId))
+                    .findFirst()
+                    .orElseThrow();
+
+            conversation.setTitle(otherUser.getDisplayName());
+        } else {
+            conversation.setTitle(request.getTitle());
+        }
+
         conversationRepository.save(conversation);
 
         // Create members
