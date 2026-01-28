@@ -29,8 +29,6 @@ export default function ChatPage() {
     //   alert("This user does not exist");
     //   return;
     // }
-    console.log(data);
-    // TODO: add to list + navigate(`/conversations/${data.id}`)
 
     const newGroup = {
       id: data.id,
@@ -47,15 +45,14 @@ export default function ChatPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+    if (!token) return;
 
     (async () => {
-      const res = await fetch("/me", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const data = await res.json();
-      console.log(data);
+      const res = await fetch("/api/users/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+      const mine = await res.json();
+      localStorage.setItem("mine", JSON.stringify(mine));
     })();
 
     (async () => {

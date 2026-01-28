@@ -16,8 +16,90 @@ export default function ChatBox({ activeConv }) {
   const [chatInfo, setChatInfo] = useState(null);
   const [messages, setMessages] = useState([]);
   // const [pageInfo, setPageInfo] = useState({ hasMore: false, nextBefore: null });
+  const [text, setText] = useState("");
 
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+
+  const sendMessage = async () => {
+    const content = text.trim();
+    if(!content || sending) return;
+
+    const token = localStorage.getItem("token");
+    const mine = JSON.parse(localStorage.getItem("mine"));
+    const mineId = mine?.id;
+
+    const clientMsgId = crypto.randomUUID();
+
+    // optimistic message
+    const optimistic = {
+      id: clientMsgId,
+      conversationId: activeConv,
+      sender: {
+        id: mineId,
+        username: mine?.username,
+        displayName: mine?.displayName,
+      },
+      type: "TEXT",
+      content,
+      createdAt: new Date().toISOString(),
+      isMine: true,
+      _status: "sending",
+    };
+
+    setMessages((prev) => [...prev, optimistic]);
+    setText("");
+    setSending(true);
+
+    try {
+      const res = await fetch(`/api/conversations/${activeConv}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          type: "TEXT",
+          content,
+          clientMsgId,
+        }),
+      });
+
+      if (!res.ok) {
+        // mark failed
+        setMessages((prev) =>
+          prev.map((m) => (m.id === clientMsgId ? { ...m, _status: "failed" } : m))
+        );
+        return;
+      }
+
+      const data = await res.json();
+      const serverMsg = data;
+      
+      // replace optimistic with real message
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === clientMsgId
+            ? {
+                ...m,
+                id: serverMsg.id,
+                createdAt: serverMsg.createdAt,
+                content: serverMsg.content,
+                type: serverMsg.type,
+                _status: "sent",
+              }
+            : m
+        )
+      );
+      } catch (e) {
+        setMessages((prev) =>
+        prev.map((m) => (m.id === clientMsgId ? { ...m, _status: "failed" } : m))
+      );
+        console.log("Error while sending message: " + e.message);
+    } finally {
+      setSending(false);
+    }
+  };
 
   useEffect(() => {
     const getChatBoxInfo = async (token) => {
@@ -46,10 +128,10 @@ export default function ChatBox({ activeConv }) {
         const data = await res.json();
 
         const items = (data?.items ?? []).map((i) => ({
-          ...i, isMine : mineId === i.sender?.id
+          ...i, isMine : mineId === i?.sender?.id
         }));
 
-        setMessages(items);
+        setMessages(items.reverse());
         // setPageInfo(data?.pageInfo);
       };
 
@@ -60,6 +142,7 @@ export default function ChatBox({ activeConv }) {
     setLoading(true);
     setMessages([]);
     // setPageInfo({ hasMore: false, nextBefore: null });
+    setText("");
 
     (async () => {
       try{
@@ -114,8 +197,21 @@ export default function ChatBox({ activeConv }) {
       {/* Input */}
       <Box sx={{ p: 2 }}>
         <Box sx={{ display: "flex", gap: 1 }}>
-          <TextField placeholder="Type a message..." fullWidth size="small" />
-          <IconButton color="primary">
+          <TextField 
+          placeholder="Type a message..." 
+          fullWidth 
+          size="small" 
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if(e.key === "Enter"){
+              e.preventDefault();
+              sendMessage();
+            }
+          }}
+          disabled={sending || loading}
+          />
+          <IconButton color="primary" onClick={sendMessage} disabled={sending || loading}>
             <SendIcon />
           </IconButton>
         </Box>

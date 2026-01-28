@@ -37,7 +37,7 @@ Response:
 }
 ```
 
-### GET /me
+### GET users/me
 
 Response:
 
@@ -143,14 +143,12 @@ Response:
 
 ```json
 {
-  "message": {
-    "id": "uuid",
+  "id": "uuid",
     "conversationId": "uuid",
-    "senderId": "uuid",
+    "sender": { id: "uuid", displayName: "Dao Nguyen", username: "Dap"}
     "type": "TEXT",
     "content": "Hello",
     "createdAt": "2026-01-23T10:00:00Z"
-  }
 }
 ```
 
