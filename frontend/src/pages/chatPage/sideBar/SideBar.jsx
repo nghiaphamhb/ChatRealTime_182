@@ -1,5 +1,5 @@
 import { Box, Divider } from "@mui/material";
-import SideCard from "./sideCard";
+import SideCard from "./SideCard";
 import SideHeader from "./SideHeader";
 
 export default function SideBar({
