@@ -27,7 +27,7 @@ A simple **realtime chat web application** built with **React (frontend)** and *
 
 ```bash
 docker-compose up -d
-cd backend && ./mvnw spring-boot:run
+cd backend/WebChat && ./gradlew.bat bootRun
 cd frontend && npm install && npm run dev
 ```
 

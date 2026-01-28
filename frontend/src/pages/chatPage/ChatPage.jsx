@@ -22,15 +22,9 @@ export default function ChatPage() {
 
     const data = await res.json();
     if (!res.ok) {
-      alert("Create failed");
+      alert("This user does not exist");
       return;
     }
-    // if(data?.title === null){
-    //   alert("This user does not exist");
-    //   return;
-    // }
-    console.log(data);
-    // TODO: add to list + navigate(`/conversations/${data.id}`)
 
     const newGroup = {
       id: data.id,
@@ -49,13 +43,14 @@ export default function ChatPage() {
     const token = localStorage.getItem("token");
 
     (async () => {
-      const res = await fetch("/me", {
+      const res = await fetch("api/users/me", {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
-      console.log(data);
+      const mine = JSON.stringify(data);
+      localStorage.setItem("mine", mine);
     })();
 
     (async () => {
