@@ -81,6 +81,7 @@ export default function AuthDialog({ open = false, handleClose }) {
 
     const data = await res.json();
     const token = data?.token;
+    const mine = JSON.stringify(data?.user);
 
     setAlert({
       type: "success",
@@ -89,6 +90,7 @@ export default function AuthDialog({ open = false, handleClose }) {
 
     if (!isRegister) {
       localStorage.setItem("token", token);
+      localStorage.setItem("mine", mine);
       navigate("/home");
     }
   };
@@ -311,9 +313,11 @@ export default function AuthDialog({ open = false, handleClose }) {
         sx={{
           my: 3,
           borderRadius: 1,
-          background: "linear-gradient(135deg, #7F5AF0 0%, #5A4FCF 45%, #3B2F80 100%)",
+          background:
+            "linear-gradient(135deg, #7F5AF0 0%, #5A4FCF 45%, #3B2F80 100%)",
           "&:hover": {
-            background: "linear-gradient(135deg, #9D7BFF 0%, #8B6BFF 50%, #5A3BFF 100%)",
+            background:
+              "linear-gradient(135deg, #9D7BFF 0%, #8B6BFF 50%, #5A3BFF 100%)",
             boxShadow: "0 12px 38px rgba(157,123,255,0.45)",
           },
           "&.Mui-disabled": {
