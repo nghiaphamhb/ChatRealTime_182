@@ -1,15 +1,16 @@
-import { Avatar, Badge, Box, Stack, Typography } from "@mui/material";
+import { Avatar, Box, Stack, Typography } from "@mui/material";
 
-export default function SideCard({ lastMsg, lastMsgAt, title, unreadCount }) {
+export default function SideCard({lastMsg, lastMsgAt, title, unreadCount, onClick, active }) {
   return (
     <Box
       sx={{
         px: 2,
         py: 1.5,
         cursor: "pointer",
+        bgcolor: active ? "rgba(0,0,0,0.08)" : "transparent",
         "&:hover": { bgcolor: "rgba(0,0,0,0.04)" },
-        bgcolor: "rgba(25,118,210,0.08)", // active
       }}
+      onClick={onClick}
     >
       <Stack direction="row" spacing={1.5} alignItems="center">
         <Avatar />

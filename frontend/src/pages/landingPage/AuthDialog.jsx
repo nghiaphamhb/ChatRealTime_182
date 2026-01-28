@@ -81,6 +81,7 @@ export default function AuthDialog({ open = false, handleClose }) {
 
     const data = await res.json();
     const token = data?.token;
+    const mine = JSON.stringify(data?.user);
 
     setAlert({
       type: "success",
@@ -89,6 +90,7 @@ export default function AuthDialog({ open = false, handleClose }) {
 
     if (!isRegister) {
       localStorage.setItem("token", token);
+      localStorage.setItem("mine", mine);
       navigate("/home");
     }
   };
