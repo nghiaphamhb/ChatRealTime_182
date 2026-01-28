@@ -1,109 +1,151 @@
 package vn.nhtw420.webchat.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import vn.nhtw420.webchat.config.SupabaseConfig;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
-public class StorageService {
+public class FileService {
 
     private final SupabaseConfig supabaseConfig;
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    public String uploadAvatar(String userId, MultipartFile file) throws IOException, InterruptedException {
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty");
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final String[] ALLOWED_TYPES = {"image/jpeg", "image/jpg", "image/png"};
+
+    public String uploadAvatar(String userId, MultipartFile file) {
+        validateFile(file);
+
+        String fileName = generateFileName(userId, file.getOriginalFilename());
+        String uploadUrl = buildUploadUrl(fileName);
+
+        HttpHeaders headers = createServiceRoleHeaders(file.getContentType());
+
+        try {
+            HttpEntity<byte[]> requestEntity = new HttpEntity<>(file.getBytes(), headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    uploadUrl,
+                    HttpMethod.POST,
+                    requestEntity,
+                    String.class
+            );
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                return buildPublicUrl(fileName);
+            }
+
+            throw new RuntimeException("Upload failed with status: " + response.getStatusCode());
+
+        } catch (HttpClientErrorException ex) {
+            throw new RuntimeException("Supabase error: " + ex.getResponseBodyAsString());
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to upload file: " + ex.getMessage());
+        }
+    }
+
+    public void deleteAvatar(String avatarUrl) {
+        String fileName = extractFileNameFromUrl(avatarUrl);
+        String deleteUrl = buildDeleteUrl(fileName);
+
+        HttpHeaders headers = createServiceRoleHeaders(null);
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+        try {
+            restTemplate.exchange(
+                    deleteUrl,
+                    HttpMethod.DELETE,
+                    requestEntity,
+                    String.class
+            );
+        } catch (HttpClientErrorException ex) {
+            // Ignore 404 if file already deleted
+            if (ex.getStatusCode() != HttpStatus.NOT_FOUND) {
+                throw new RuntimeException("Failed to delete file: " + ex.getMessage());
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to delete file: " + ex.getMessage());
+        }
+    }
+
+    private HttpHeaders createServiceRoleHeaders(String contentType) {
+        HttpHeaders headers = new HttpHeaders();
+        // Service Role Key - bypass RLS
+        headers.set("Authorization", "Bearer " + supabaseConfig.getKey());
+        headers.set("apikey", supabaseConfig.getKey());
+
+        if (contentType != null) {
+            headers.setContentType(MediaType.parseMediaType(contentType));
+        }
+        return headers;
+    }
+
+    private void validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("File is empty");
         }
 
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new IllegalArgumentException("File must be an image");
+        if (contentType == null || !isAllowedType(contentType)) {
+            throw new RuntimeException("Only JPEG and PNG images are allowed");
         }
 
-        if (file.getSize() > 5 * 1024 * 1024) {
-            throw new IllegalArgumentException("File must be be less than 5MB");
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new RuntimeException("File size exceeds 5MB limit");
         }
-
-        String extension = getFileExtension(file.getOriginalFilename());
-        String fileName = String.format("%s/%s.%s", userId, UUID.randomUUID(), extension);
-
-        String uploadUrl = String.format("%s/storage/v1/object/%s/%s",
-                supabaseConfig.getUrl(),
-                supabaseConfig.getStorage().getBucket(), fileName);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(uploadUrl))
-                .header("Authorization", "Bearer" + supabaseConfig.getKey())
-                .header("Content-Type", contentType)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(file.getBytes()))
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200 && response.statusCode() != 201) {
-            log.error("Failed to upload file: {}", response.body());
-            throw new RuntimeException("Failed to upload file to storage");
-        }
-
-        return String.format("%s/storage/v1/object/public/%s/%s",
-                supabaseConfig.getUrl(),
-                supabaseConfig.getStorage().getBucket(),
-                fileName);
     }
 
-    public void deleteAvatar(String avatarUrl) throws IOException, InterruptedException {
-        if (avatarUrl == null || avatarUrl.isEmpty()) {
-            return;
+    private boolean isAllowedType(String contentType) {
+        for (String allowedType : ALLOWED_TYPES) {
+            if (allowedType.equalsIgnoreCase(contentType)) {
+                return true;
+            }
         }
+        return false;
+    }
 
-        // Extract file path from URL
-        String filePath = extractFilePathFromUrl(avatarUrl);
-        if (filePath == null) {
-            return;
-        }
-
-        String deleteUrl = String.format("%s/storage/v1/object/%s/%s",
-                supabaseConfig.getUrl(),
-                supabaseConfig.getStorage().getBucket(),
-                filePath);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(deleteUrl))
-                .header("Authorization", "Bearer " + supabaseConfig.getKey())
-                .DELETE()
-                .build();
-
-        httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    private String generateFileName(String userId, String originalFilename) {
+        String extension = getFileExtension(originalFilename);
+        return userId + "/" + UUID.randomUUID() + extension;
     }
 
     private String getFileExtension(String filename) {
         if (filename == null || !filename.contains(".")) {
-            return "jpg";
+            return ".jpg";
         }
-        return filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
+        return filename.substring(filename.lastIndexOf('.'));
     }
 
-    private String extractFilePathFromUrl(String url) {
-        if (url == null || !url.contains("/public/")) {
-            return null;
+    private String buildUploadUrl(String fileName) {
+        return supabaseConfig.getUrl() + "/storage/v1/object/"
+                + supabaseConfig.getBucketName() + "/" + fileName;
+    }
+
+    private String buildDeleteUrl(String fileName) {
+        return supabaseConfig.getUrl() + "/storage/v1/object/"
+                + supabaseConfig.getBucketName() + "/" + fileName;
+    }
+
+    private String buildPublicUrl(String fileName) {
+        return supabaseConfig.getUrl() + "/storage/v1/object/public/"
+                + supabaseConfig.getBucketName() + "/" + fileName;
+    }
+
+    private String extractFileNameFromUrl(String url) {
+        String prefix = "/storage/v1/object/public/" + supabaseConfig.getBucketName() + "/";
+        int index = url.indexOf(prefix);
+
+        if (index != -1) {
+            return url.substring(index + prefix.length());
         }
 
-        String[] parts = url.split("/public/");
-        if (parts.length < 2) {
-            return null;
-        }
-
-        return parts[1].substring(parts[1].indexOf("/") + 1);
+        throw new RuntimeException("Invalid avatar URL format");
     }
 }

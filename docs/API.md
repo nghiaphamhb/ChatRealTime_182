@@ -6,17 +6,24 @@ Auth: `Authorization: Bearer <JWT>`
 ## 1) Auth
 
 ### POST /auth/register
+
 Request:
+
 ```json
 { "username": "dao", "password": "123456", "displayName": "Dao" }
-````
+```
 
 Response:
 
 ```json
 {
   "token": "<jwt>",
-  "user": { "id": "uuid", "username": "dao", "displayName": "Dao", "avatarUrl": null }
+  "user": {
+    "id": "uuid",
+    "username": "dao",
+    "displayName": "Dao",
+    "avatarUrl": null
+  }
 }
 ```
 
@@ -33,7 +40,12 @@ Response:
 ```json
 {
   "token": "<jwt>",
-  "user": { "id": "uuid", "username": "dao", "displayName": "Dao", "avatarUrl": null }
+  "user": {
+    "id": "uuid",
+    "username": "dao",
+    "displayName": "Dao",
+    "avatarUrl": null
+  }
 }
 ```
 
@@ -42,7 +54,13 @@ Response:
 Response:
 
 ```json
-{ "id": "uuid", "username": "dao", "displayName": "Dao", "avatarUrl": null, "lastSeenAt": "2026-01-23T10:00:00Z" }
+{
+  "id": "uuid",
+  "username": "dao",
+  "displayName": "Dao",
+  "avatarUrl": null,
+  "lastSeenAt": "2026-01-23T10:00:00Z"
+}
 ```
 
 ---
@@ -59,7 +77,11 @@ Response:
     "id": "uuid",
     "type": "DM",
     "title": "Dao • An",
-    "lastMessage": { "id": "uuid", "content": "ok", "createdAt": "2026-01-23T10:00:00Z" },
+    "lastMessage": {
+      "id": "uuid",
+      "content": "ok",
+      "createdAt": "2026-01-23T10:00:00Z"
+    },
     "lastMessageAt": "2026-01-23T10:00:00Z",
     "unreadCount": 3
   }
@@ -83,7 +105,12 @@ Request (GROUP):
 Response:
 
 ```json
-{ "id": "uuid", "type": "GROUP", "title": "Team Chat", "createdAt": "2026-01-23T10:00:00Z" }
+{
+  "id": "uuid",
+  "type": "GROUP",
+  "title": "Team Chat",
+  "createdAt": "2026-01-23T10:00:00Z"
+}
 ```
 
 ### GET /conversations/{id}
@@ -96,8 +123,13 @@ Response:
   "type": "GROUP",
   "title": "Team Chat",
   "members": [
-    { "userId": "u1", "username": "dao", "displayName": "Dao", "role": "ADMIN" },
-    { "userId": "u2", "username": "an",  "displayName": "An",  "role": "MEMBER" }
+    {
+      "userId": "u1",
+      "username": "dao",
+      "displayName": "Dao",
+      "role": "ADMIN"
+    },
+    { "userId": "u2", "username": "an", "displayName": "An", "role": "MEMBER" }
   ],
   "lastMessageAt": "2026-01-23T10:00:00Z"
 }
@@ -111,8 +143,8 @@ Response:
 
 Notes:
 
-* If `before` is omitted -> latest messages
-* Server returns newest->oldest or oldest->newest; choose one and keep consistent
+- If `before` is omitted -> latest messages
+- Server returns newest->oldest or oldest->newest; choose one and keep consistent
   Response:
 
 ```json
@@ -177,5 +209,61 @@ Response:
 ## Common Error Format
 
 ```json
-{ "error": { "code": "FORBIDDEN", "message": "Not a member of this conversation" } }
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "Not a member of this conversation"
+  }
+}
 ```
+
+## 5) Avatar
+
+### POST /users/edit/{id}
+
+Header:
+
+```
+Authorization: Bearer {JWT_TOKEN}
+```
+
+Body:
+
+```
+Key=file Content-Type=File value=any_picture.jpg
+```
+
+Response:
+
+```json
+{
+  "id": "user-123",
+  "username": "john_doe",
+  "displayName": "John Doe",
+  "avatarUrl": "https://xxxxx.supabase.co/storage/v1/object/public/avatars/user-123/uuid.jpg",
+  "lastSeenAt": "2025-01-28T06:50:00Z"
+}
+```
+
+### DELETE /users/edit/{id}
+
+Header:
+
+```
+Authorization: Bearer {JWT_TOKEN}
+```
+
+Response:
+
+```json
+{
+  "id": "user-123",
+  "username": "john_doe",
+  "displayName": "John Doe",
+  "avatarUrl": null,
+  "lastSeenAt": "2025-01-28T06:50:00Z"
+}
+```
+
+_Note:_ Allowed types: image/jpeg, image/jpg, image/png
+and max size is 5MB.

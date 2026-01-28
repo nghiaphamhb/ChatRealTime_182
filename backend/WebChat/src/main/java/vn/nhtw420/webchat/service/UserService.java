@@ -2,6 +2,7 @@ package vn.nhtw420.webchat.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import vn.nhtw420.webchat.domain.User;
 import vn.nhtw420.webchat.dto.request.CreateUserRequest;
 import vn.nhtw420.webchat.dto.request.UpdateUserRequest;
@@ -16,6 +17,7 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final FileService fileService;
 
     public List<UserDto> getAllUsers() {
         return toDtoList(userRepository.findAll());
@@ -75,6 +77,35 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
+    public UserDto uploadAvatar(String userId, MultipartFile file) {
+        return updateUserAvatar(userId, user -> {
+            try {
+                // Delete old avatar if exists
+                if (user.getAvatarUrl() != null) {
+                    fileService.deleteAvatar(user.getAvatarUrl());
+                }
+                // Upload new avatar
+                String avatarUrl = fileService.uploadAvatar(userId, file);
+                user.setAvatarUrl(avatarUrl);
+            } catch (Exception ex) {
+                throw new RuntimeException("Failed to upload avatar: " + ex.getMessage());
+            }
+        });
+    }
+
+    public UserDto deleteAvatar(String userId) {
+        return updateUserAvatar(userId, user -> {
+            if (user.getAvatarUrl() != null) {
+                try {
+                    fileService.deleteAvatar(user.getAvatarUrl());
+                    user.setAvatarUrl(null);
+                } catch (Exception ex) {
+                    throw new RuntimeException("Failed to delete avatar: " + ex.getMessage());
+                }
+            }
+        });
+    }
+
     private UserDto toDto(User user) {
         return new UserDto(
                 user.getId(),
@@ -91,5 +122,15 @@ public class UserService {
             result.add(toDto(user));
         }
         return result;
+    }
+
+    private UserDto updateUserAvatar(String userId, java.util.function.Consumer<User> updateAction) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        updateAction.accept(user);
+
+        User updated = userRepository.save(user);
+        return toDto(updated);
     }
 }

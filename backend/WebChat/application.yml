@@ -13,3 +13,8 @@ spring:
     mongodb:
       uri: ${MONGODB_URI}
       auto-index-creation: true
+
+supabase:
+  url: ${SUPABASE_URL}
+  key: ${SUPABASE_SECRET_KEY}
+  bucket-name: ${SUPABASE_BUCKET}
