@@ -73,6 +73,8 @@ export default function AuthDialog({ open = false, handleClose }) {
           type: "error",
           msg: isRegister ? "This account already exists!" : "Login failed!",
         });
+      } else if (res.status === 500) {
+        setAlert({ type: "error", msg: "Invalid username or password" });
       } else {
         setAlert({ type: "error", msg: "Server error" });
       }
@@ -81,7 +83,6 @@ export default function AuthDialog({ open = false, handleClose }) {
 
     const data = await res.json();
     const token = data?.token;
-    const mine = JSON.stringify(data?.user);
 
     setAlert({
       type: "success",
@@ -90,7 +91,6 @@ export default function AuthDialog({ open = false, handleClose }) {
 
     if (!isRegister) {
       localStorage.setItem("token", token);
-      localStorage.setItem("mine", mine);
       navigate("/home");
     }
   };

@@ -13,13 +13,16 @@ export default function SideBar({
       sx={{
         width: 340,
         height: "100%",
-        bgcolor: "rgba(255,255,255,0.8)",
+        border: "1px solid rgba(255,255,255,0.5)",
         borderRadius: 3,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
-        backdropFilter: "blur(6px)",
+        backdropFilter: "blur(20px)",
         opacity: 0.85,
+        bgcolor: "rgba(255,255,255,0.15)",
+        boxShadow: "0 0 30px rgba(0,0,0,0.5)",
+        color: "rgba(255,255,255,0.8)",
       }}
     >
       {/* Sidebar header */}

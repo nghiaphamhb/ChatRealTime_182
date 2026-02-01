@@ -82,23 +82,43 @@ export default function SideHeader({ createConversation }) {
   };
 
   return (
-    <Box
-      sx={{
-        p: 2,
-      }}
-    >
+    <Box>
       <Box
         sx={{
+          width: "100%",
           display: "flex",
-          flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
+          px: 2,
+          py: 1,
+          background:
+            "linear-gradient(135deg, #7F5AF0 0%, #5A4FCF 45%, #3B2F80 100%)",
+          borderBottom: "1px solid rgba(43,34,80,0.14)",
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          color: "white",
         }}
       >
         <Typography fontWeight={700} variant="h6">
           Chats
         </Typography>
-        <IconButton aria-label="add-button" onClick={openMenu}>
+        <IconButton
+          aria-label="add-button"
+          onClick={openMenu}
+          sx={{
+            width: 36,
+            height: 36,
+            borderRadius: 2,
+            color: "#2B2250",
+            backgroundColor: "rgba(255,241,214,0.75)",
+            border: "1px solid rgba(43,34,80,0.14)",
+            "&:hover": {
+              background:
+                "linear-gradient(135deg, #9D7BFF 0%, #8B6BFF 50%, #5A3BFF 100%)",
+              boxShadow: "0 12px 38px rgba(157,123,255,0.45)",
+            },
+          }}
+        >
           <AddIcon />
         </IconButton>
       </Box>
@@ -121,6 +141,7 @@ export default function SideHeader({ createConversation }) {
               onChange={(e) => setGroupName(e.target.value)}
               fullWidth
               autoFocus
+              sx={{ mb: 1 }}
             />
           )}
 

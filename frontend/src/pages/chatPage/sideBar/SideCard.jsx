@@ -14,13 +14,14 @@ export default function SideCard({
         px: 2,
         py: 1.5,
         cursor: "pointer",
-        bgcolor: active ? "rgba(0,0,0,0.08)" : "transparent",
-        "&:hover": { bgcolor: "rgba(0,0,0,0.04)" },
+        color: "white",
+        bgcolor: active ? "#5a4fcf9d" : "transparent",
+        "&:hover": { bgcolor: "#5a4fcf5e" },
       }}
       onClick={onClick}
     >
       <Stack direction="row" spacing={1.5} alignItems="center">
-        <Avatar />
+        <Avatar sx={{ border: 1, borderColor: "#f9c076" }} />
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack direction="row" justifyContent="space-between">

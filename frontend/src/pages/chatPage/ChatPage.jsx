@@ -1,12 +1,28 @@
 import { Box } from "@mui/material";
-
 import SideBar from "./sideBar/SideBar";
 import ChatBox from "./chatBox/ChatBox";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+
+import { io } from "socket.io-client";
 
 export default function ChatPage() {
   const [list, setList] = useState([]);
   const [activeConv, setActiveConv] = useState(null);
+
+  // need for rerender ChatBox component's props
+  const [socket] = useState(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    return io("http://localhost:3001", {
+      path: "/ws",
+      transports: ["websocket"],
+      auth: { token: `Bearer ${token}` },
+    });
+  });
+
+  const activeConvRef = useRef(null);
+  const socketRef = useRef(null);
 
   const createConversation = async (payload) => {
     const token = localStorage.getItem("token");
@@ -22,15 +38,9 @@ export default function ChatPage() {
 
     const data = await res.json();
     if (!res.ok) {
-      alert("Create failed");
+      alert("This user does not exist");
       return;
     }
-    // if(data?.title === null){
-    //   alert("This user does not exist");
-    //   return;
-    // }
-    console.log(data);
-    // TODO: add to list + navigate(`/conversations/${data.id}`)
 
     const newGroup = {
       id: data.id,
@@ -43,21 +53,25 @@ export default function ChatPage() {
     setList((prev) => [...prev, newGroup]);
   };
 
-  const clickCard = (id) => setActiveConv(id);
+  const clickCard = (conversationId) => setActiveConv(conversationId);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+    if (!token) return;
 
+    // fetch mine
     (async () => {
-      const res = await fetch("/me", {
+      const res = await fetch("api/users/me", {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
-      console.log(data);
+      const mine = JSON.stringify(data);
+      localStorage.setItem("mine", mine);
     })();
 
+    // fetch conversation
     (async () => {
       const res = await fetch("/api/conversations", {
         method: "GET",
@@ -68,6 +82,54 @@ export default function ChatPage() {
       setList(data);
     })();
   }, []);
+
+  useEffect(() => {
+    activeConvRef.current = activeConv;
+  }, [activeConv]);
+
+  // add listener and cleanup for socket
+  useEffect(() => {
+    if (!socket) return;
+
+    socketRef.current = socket;
+
+    const onConnect = () => {
+      console.log("connected socket:", socket.id);
+
+      // auto-join active conv after reconnect
+      const convId = activeConvRef.current;
+      if (convId)
+        socket.emit("conversations:join", { conversationId: convId }, (ack) => {
+          if (!ack?.ok) console.log("join failed:", ack?.error);
+        });
+    };
+    const onDisconnect = (reason) =>
+      console.log("socket disconnected:", reason);
+    const onConnectError = (err) => console.log("connect_error", err.message);
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("connect_error", onConnectError);
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("connect_error", onConnectError);
+
+      socket.close();
+      socketRef.current = null;
+    };
+  }, [socket]);
+
+  //  join conv when user click card
+  useEffect(() => {
+    if (!socket || !socket.connected || !activeConv) return;
+
+    socket.emit("conversations:join", { conversationId: activeConv }, (ack) => {
+      if (!ack?.ok) console.log("join failed:", ack?.error);
+      else console.log("joined:", activeConv);
+    });
+  }, [activeConv, socket]);
 
   return (
     <Box
@@ -88,7 +150,7 @@ export default function ChatPage() {
         activeConv={activeConv}
         createConversation={createConversation}
       />
-      {activeConv && <ChatBox activeConv={activeConv} />}
+      {activeConv && <ChatBox activeConv={activeConv} socket={socket} />}
     </Box>
   );
 }
