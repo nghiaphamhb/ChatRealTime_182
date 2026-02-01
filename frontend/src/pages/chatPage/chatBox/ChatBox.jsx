@@ -12,13 +12,47 @@ import SendIcon from "@mui/icons-material/Send";
 import { useEffect, useState } from "react";
 import MessageBubble from "./MessageBubble";
 
-export default function ChatBox({ activeConv }) {
+export default function ChatBox({ activeConv, socket }) {
   const [chatInfo, setChatInfo] = useState(null);
   const [messages, setMessages] = useState([]);
   // const [pageInfo, setPageInfo] = useState({ hasMore: false, nextBefore: null });
 
   const [loading, setLoading] = useState(true);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
 
+  const handleSend = () => {
+    const content = text.trim();
+    if (!content || sending || !socket || !activeConv) return;
+
+    if (!socket.connected) {
+      console.log("socket not connected yet");
+      return;
+    }
+
+    setSending(true);
+
+    // console.log("sending", { activeConv, connected: socket?.connected });
+    socket.emit(
+      "messages:send",
+      {
+        conversationId: activeConv,
+        type: "TEXT",
+        content,
+        clientMsgId: crypto.randomUUID(),
+      },
+      (ack) => {
+        setSending(false);
+        if (!ack?.ok) {
+          console.log("send failed:", ack?.error);
+          return;
+        }
+        setText("");
+      },
+    );
+  };
+
+  // call REST API to show box info
   useEffect(() => {
     const getChatBoxInfo = async (token) => {
       const res = await fetch(`/api/conversations/${activeConv}`, {
@@ -52,9 +86,10 @@ export default function ChatBox({ activeConv }) {
         ...i,
         isMine: mineId === i.sender?.id,
       }));
+      // console.log(items[0]);
 
       setMessages(items.reverse());
-      // setPageInfo(data?.pageInfo);
+      setText("");
     };
 
     if (!activeConv) return;
@@ -74,6 +109,33 @@ export default function ChatBox({ activeConv }) {
       }
     })();
   }, [activeConv]);
+
+  // listen realtime event from server & append messages
+  useEffect(() => {
+    if (!socket || !activeConv) return;
+
+    const mineId = JSON.parse(localStorage.getItem("mine"))?.id;
+
+    const onEvent = (env) => {
+      if (env?.conversationId !== activeConv) return;
+
+      if (env?.type === "MESSAGE_CREATED") {
+        const msg = env?.payload?.saved;
+        if (!msg) return;
+
+        const normalized = { ...msg, isMine: mineId === msg.sender?.id };
+
+        setMessages((prev) => {
+          // prevent duplicate messages if server re-send / reconnect
+          if (prev.some((m) => m.id === normalized.id)) return prev;
+          return [...prev, normalized];
+        });
+      }
+    };
+
+    socket.on("event", onEvent);
+    return () => socket.off("event", onEvent);
+  }, [socket, activeConv]);
 
   return (
     <Box
@@ -160,6 +222,14 @@ export default function ChatBox({ activeConv }) {
                 },
               },
             }}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
           />
           <IconButton
             sx={{
@@ -176,6 +246,8 @@ export default function ChatBox({ activeConv }) {
                 boxShadow: "0 12px 38px rgba(157,123,255,0.45)",
               },
             }}
+            onClick={handleSend}
+            disabled={!socket || !socket.connected || sending}
           >
             <SendIcon />
           </IconButton>
