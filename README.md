@@ -1,6 +1,6 @@
 # 💬 Realtime Chat Web App
 
-A simple **realtime chat web application** built with **React (frontend)** and **Java Spring Boot (backend)** using **WebSocket + STOMP**.
+A simple **realtime chat web application** built with **React (frontend)** and **Java Spring Boot (backend)** using **Socket.io**, which was implemented by microservice in **NodeJS**.
 
 ---
 
@@ -16,8 +16,9 @@ A simple **realtime chat web application** built with **React (frontend)** and *
 
 ## 🧱 Tech Stack
 
-- **Frontend:** React (Vite), MUI, STOMP client
+- **Frontend:** React (Vite), MUI
 - **Backend:** Java 21, Spring Boot, Spring Security, WebSocket
+- **Microservice**: Socket.io, NodeJS
 - **Database:** MongoDB
 - **Infra:** Docker, REST + WebSocket
 
@@ -26,8 +27,8 @@ A simple **realtime chat web application** built with **React (frontend)** and *
 ## ▶️ Run Locally
 
 ```bash
-docker-compose up -d
 cd backend/WebChat && ./gradlew.bat bootRun
+cd backend/ws-gateway && npm install && npm run dev
 cd frontend && npm install && npm run dev
 ```
 
@@ -35,19 +36,17 @@ cd frontend && npm install && npm run dev
 
 ## 🔐 Env
 
-**Backend**
+File .env will be placed in root directory.
 
 ```
-DB_URL=mongodb://localhost:27017/rainbowchat
-JWT_SECRET=secret
+JWT_PRIVATE_KEY=...
+JWT_EXPIRATION_SECONDS=...
+MONGODB_URI=...
+PORT=...
+CORS_ORIGIN=...
+JAVA_BASE_URL=...
 ```
 
-**Frontend**
-
-```
-VITE_API_BASE=http://localhost:8080/api
-VITE_WS_BASE=http://localhost:8080/ws
-```
 
 ---
 
