@@ -19,8 +19,12 @@ public class User {
 
     @Indexed(unique = true)
     private String username;
+
     private String password;
+
+    @Indexed
     private String displayName;
+
     private Instant lastSeenAt;
     private String avatarUrl;
     private Instant createdAt;

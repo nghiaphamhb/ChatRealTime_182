@@ -13,5 +13,5 @@ import java.util.List;
 public class CreateConversationRequest {
     private ConversationType type;
     private String title;
-    private List<String> memberUserIds;
+    private List<String> memberIds;
 }

@@ -13,6 +13,7 @@ import vn.nhtw420.webchat.dto.request.UpdateUserRequest;
 import vn.nhtw420.webchat.dto.response.UserDto;
 import vn.nhtw420.webchat.security.UserPrincipal;
 import vn.nhtw420.webchat.service.UserService;
+import vn.nhtw420.webchat.validator.DisplayNameValidator;
 
 import java.util.List;
 
@@ -22,6 +23,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final DisplayNameValidator displayNameValidator;
 
     @GetMapping
     public ResponseEntity<List<UserDto>> getAllUsers() {
@@ -72,6 +74,18 @@ public class UserController {
     ) {
         validateUserAccess(id, principal);
         return ResponseEntity.ok(userService.deleteAvatar(id));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<UserDto>> searchDisplayName(@RequestParam String displayName) {
+
+        String sanitized = displayNameValidator.sanitize(displayName);
+
+        if (sanitized.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        return ResponseEntity.ok(userService.searchUsersByDisplayName(sanitized));
     }
 
     private void validateUserAccess(String requestedUserId, UserPrincipal principal) {

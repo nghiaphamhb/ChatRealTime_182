@@ -8,9 +8,12 @@ import vn.nhtw420.webchat.dto.request.CreateUserRequest;
 import vn.nhtw420.webchat.dto.request.UpdateUserRequest;
 import vn.nhtw420.webchat.dto.response.UserDto;
 import vn.nhtw420.webchat.repository.UserRepository;
+import vn.nhtw420.webchat.validator.DisplayNameValidator;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +21,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final FileService fileService;
+    private final DisplayNameValidator displayNameValidator;
 
     public List<UserDto> getAllUsers() {
         return toDtoList(userRepository.findAll());
@@ -36,11 +40,15 @@ public class UserService {
             throw new RuntimeException("Username already exists");
         }
 
+        // +) validate display name
+        displayNameValidator.validate(request.getDisplayName());
+
         // 2) build entity
         User user = new User();
         user.setUsername(request.getUsername());
         user.setDisplayName(request.getDisplayName());
         user.setPassword(request.getPassword());
+        user.setCreatedAt(Instant.now());
 
         User saved = userRepository.save(user);
 
@@ -104,6 +112,19 @@ public class UserService {
                 }
             }
         });
+    }
+
+    public List<UserDto> searchUsersByDisplayName(String displayName) {
+        String sanitized = displayNameValidator.sanitize(displayName);
+
+        if (!displayNameValidator.isValid(sanitized)) {
+            return List.of();
+        }
+
+        return userRepository.findByDisplayNameContainingIgnoreCase(sanitized)
+                .stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     private UserDto toDto(User user) {

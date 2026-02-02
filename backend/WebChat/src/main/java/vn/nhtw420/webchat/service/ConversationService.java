@@ -2,7 +2,6 @@ package vn.nhtw420.webchat.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import vn.nhtw420.webchat.domain.*;
 import vn.nhtw420.webchat.dto.request.CreateConversationRequest;
 import vn.nhtw420.webchat.dto.response.ConversationDetailResponse;
@@ -10,59 +9,48 @@ import vn.nhtw420.webchat.dto.response.ConversationListItemResponse;
 import vn.nhtw420.webchat.dto.response.CreateConversationResponse;
 import vn.nhtw420.webchat.repository.*;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ConversationService {
+
     private final ConversationRepository conversationRepository;
     private final ConversationMemberRepository memberRepository;
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
 
-    @Transactional
     public CreateConversationResponse createConversation(CreateConversationRequest request, String currentUserId) {
-        // Validate memberUserIds
-        List<String> allMemberIds = new ArrayList<>(request.getMemberUserIds());
-        if (!allMemberIds.contains(currentUserId)) {
-            allMemberIds.add(currentUserId);
-        }
+        validateRequest(request);
 
-        if (request.getType() == ConversationType.DM && allMemberIds.size() != 2) {
-            throw new IllegalArgumentException("DM conversation must have exactly 2 members");
-        }
+        // Collect member IDs
+        List<String> memberIds = buildMemberIdList(request, currentUserId);
+
+        // Validate member count for DM
+        validateDMMembers(request.getType(), memberIds);
 
         // Check if DM already exists
         if (request.getType() == ConversationType.DM) {
-            Optional<Conversation> existing = findExistingDM(allMemberIds.get(0), allMemberIds.get(1));
-            if (existing.isPresent()) {
-                return mapToResponse(existing.get());
+            Optional<Conversation> existingDM = findExistingDM(memberIds);
+            if (existingDM.isPresent()) {
+                return mapToResponse(existingDM.get(), currentUserId);
             }
         }
 
-        // Create conversation
-        Conversation conversation = new Conversation();
-        conversation.setType(request.getType());
-        conversation.setTitle(request.getTitle());
+        // Create new conversation
+        Conversation conversation = createNewConversation(request);
         conversationRepository.save(conversation);
 
-        // Create members
-        for (int i = 0; i < allMemberIds.size(); i++) {
-            ConversationMember member = new ConversationMember();
-            member.setConversationId(conversation.getId());
-            member.setUserId(allMemberIds.get(i));
-            member.setRole(i == 0 && allMemberIds.get(i).equals(currentUserId)
-                    ? MemberRole.ADMIN
-                    : MemberRole.MEMBER);
-            memberRepository.save(member);
-        }
+        // Create member records
+        createMemberRecords(conversation.getId(), memberIds, currentUserId);
 
-        return mapToResponse(conversation);
+        return mapToResponse(conversation, currentUserId);
     }
 
+
     public List<ConversationListItemResponse> getUserConversations(String userId) {
-        // Get all conversations user is member of
         List<ConversationMember> memberships = memberRepository.findByUserId(userId);
         List<String> conversationIds = memberships.stream()
                 .map(ConversationMember::getConversationId)
@@ -76,12 +64,10 @@ public class ConversationService {
 
         return conversations.stream()
                 .map(conv -> buildListItem(conv, userId))
-                .sorted((a, b) -> {
-                    if (a.getLastMessageAt() == null && b.getLastMessageAt() == null) return 0;
-                    if (a.getLastMessageAt() == null) return 1;
-                    if (b.getLastMessageAt() == null) return -1;
-                    return b.getLastMessageAt().compareTo(a.getLastMessageAt());
-                })
+                .sorted(Comparator.comparing(
+                        ConversationListItemResponse::getLastMessageAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())
+                ))
                 .toList();
     }
 
@@ -95,28 +81,9 @@ public class ConversationService {
 
         // Get all members
         List<ConversationMember> members = memberRepository.findByConversationId(conversationId);
-        Map<String, User> userMap = userRepository.findAllById(
-                members.stream().map(ConversationMember::getUserId).toList()
-        ).stream().collect(Collectors.toMap(User::getId, u -> u));
+        Map<String, User> userMap = getUserMap(members);
 
-        ConversationDetailResponse response = new ConversationDetailResponse();
-        response.setId(conversation.getId());
-        response.setType(conversation.getType());
-        response.setTitle(getConversationTitle(conversation, userId, userMap));
-        response.setMembers(members.stream()
-                .map(m -> {
-                    User user = userMap.get(m.getUserId());
-                    ConversationDetailResponse.MemberInfo info = new ConversationDetailResponse.MemberInfo();
-                    info.setUserId(user.getId());
-                    info.setUsername(user.getUsername());
-                    info.setDisplayName(user.getDisplayName());
-                    info.setRole(m.getRole());
-                    return info;
-                })
-                .toList());
-        response.setLastMessageAt(conversation.getLastMessageAt());
-
-        return response;
+        return buildDetailResponse(conversation, members, userMap, userId);
     }
 
     public void markAsRead(String conversationId, String userId, String lastReadMessageId) {
@@ -127,24 +94,108 @@ public class ConversationService {
         memberRepository.save(member);
     }
 
-    // Helper methods
-    private Optional<Conversation> findExistingDM(String userId1, String userId2) {
-        List<ConversationMember> user1Convs = memberRepository.findByUserId(userId1);
-        List<ConversationMember> user2Convs = memberRepository.findByUserId(userId2);
+    private void validateRequest(CreateConversationRequest request) {
+        if (request.getType() == null) {
+            throw new IllegalArgumentException("Conversation type is required");
+        }
 
-        Set<String> user2ConvIds = user2Convs.stream()
-                .map(ConversationMember::getConversationId)
-                .collect(Collectors.toSet());
+        if (request.getType() == ConversationType.GROUP &&
+                (request.getTitle() == null || request.getTitle().isBlank())) {
+            throw new IllegalArgumentException("Title is required for GROUP conversations");
+        }
+    }
 
-        for (ConversationMember m : user1Convs) {
-            if (user2ConvIds.contains(m.getConversationId())) {
-                Conversation conv = conversationRepository.findById(m.getConversationId()).orElse(null);
-                if (conv != null && conv.getType() == ConversationType.DM) {
-                    return Optional.of(conv);
+    private List<String> buildMemberIdList(CreateConversationRequest request, String currentUserId) {
+        List<String> memberIds = new ArrayList<>();
+        memberIds.add(currentUserId);
+
+        if (request.getMemberIds() != null && !request.getMemberIds().isEmpty()) {
+            for (String memberId : request.getMemberIds()) {
+                if (!userRepository.existsById(memberId)) {
+                    throw new IllegalArgumentException("User not found: " + memberId);
+                }
+
+                if (!memberIds.contains(memberId)) {
+                    memberIds.add(memberId);
                 }
             }
         }
-        return Optional.empty();
+
+        return memberIds;
+    }
+
+    private void validateDMMembers(ConversationType type, List<String> memberIds) {
+        if (type == ConversationType.DM && memberIds.size() != 2) {
+            throw new IllegalArgumentException("DM conversation must have exactly 2 members");
+        }
+    }
+
+    private Optional<Conversation> findExistingDM(List<String> memberIds) {
+        List<String> sortedIds = memberIds.stream()
+                .sorted()
+                .collect(Collectors.toList());
+
+        return conversationRepository.findDMByMembers(ConversationType.DM, sortedIds);
+    }
+
+    private Conversation createNewConversation(CreateConversationRequest request) {
+        Conversation conversation = new Conversation();
+        conversation.setType(request.getType());
+        conversation.setCreatedAt(Instant.now());
+        conversation.setLastMessageAt(Instant.now());
+
+        if (request.getType() == ConversationType.GROUP) {
+            conversation.setTitle(request.getTitle());
+        }
+
+        return conversation;
+    }
+
+    private void createMemberRecords(String conversationId, List<String> memberIds, String creatorId) {
+        for (String memberId : memberIds) {
+            ConversationMember member = new ConversationMember();
+            member.setConversationId(conversationId);
+            member.setUserId(memberId);
+            member.setRole(memberId.equals(creatorId) ? MemberRole.ADMIN : MemberRole.MEMBER);
+            member.setJoinedAt(Instant.now());
+            memberRepository.save(member);
+        }
+    }
+
+    private Map<String, User> getUserMap(List<ConversationMember> members) {
+        List<String> userIds = members.stream()
+                .map(ConversationMember::getUserId)
+                .toList();
+
+        return userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+    }
+
+    private ConversationDetailResponse buildDetailResponse(
+            Conversation conversation,
+            List<ConversationMember> members,
+            Map<String, User> userMap,
+            String currentUserId
+    ) {
+        ConversationDetailResponse response = new ConversationDetailResponse();
+        response.setId(conversation.getId());
+        response.setType(conversation.getType());
+        response.setTitle(getConversationTitle(conversation, currentUserId, userMap));
+        response.setMembers(members.stream()
+                .map(m -> buildMemberInfo(m, userMap.get(m.getUserId())))
+                .toList());
+        response.setLastMessageAt(conversation.getLastMessageAt());
+
+        return response;
+    }
+
+    private ConversationDetailResponse.MemberInfo buildMemberInfo(ConversationMember member, User user) {
+        ConversationDetailResponse.MemberInfo info = new ConversationDetailResponse.MemberInfo();
+        info.setUserId(user.getId());
+        info.setUsername(user.getUsername());
+        info.setDisplayName(user.getDisplayName());
+        info.setRole(member.getRole());
+        return info;
     }
 
     private ConversationListItemResponse buildListItem(Conversation conv, String currentUserId) {
@@ -152,15 +203,19 @@ public class ConversationService {
         item.setId(conv.getId());
         item.setType(conv.getType());
 
-        // Get members for title
         List<ConversationMember> members = memberRepository.findByConversationId(conv.getId());
-        Map<String, User> userMap = userRepository.findAllById(
-                members.stream().map(ConversationMember::getUserId).toList()
-        ).stream().collect(Collectors.toMap(User::getId, u -> u));
+        Map<String, User> userMap = getUserMap(members);
 
         item.setTitle(getConversationTitle(conv, currentUserId, userMap));
+        item.setLastMessageAt(conv.getLastMessageAt());
 
-        // Last message
+        setLastMessageInfo(item, conv);
+        setUnreadCount(item, conv, currentUserId, members);
+
+        return item;
+    }
+
+    private void setLastMessageInfo(ConversationListItemResponse item, Conversation conv) {
         if (conv.getLastMessageId() != null) {
             messageRepository.findById(conv.getLastMessageId()).ifPresent(msg -> {
                 ConversationListItemResponse.LastMessageInfo info = new ConversationListItemResponse.LastMessageInfo();
@@ -170,10 +225,9 @@ public class ConversationService {
                 item.setLastMessage(info);
             });
         }
+    }
 
-        item.setLastMessageAt(conv.getLastMessageAt());
-
-        // Unread count
+    private void setUnreadCount(ConversationListItemResponse item, Conversation conv, String currentUserId, List<ConversationMember> members) {
         ConversationMember currentMember = members.stream()
                 .filter(m -> m.getUserId().equals(currentUserId))
                 .findFirst()
@@ -186,8 +240,6 @@ public class ConversationService {
             );
             item.setUnreadCount((int) unreadCount);
         }
-
-        return item;
     }
 
     private String getConversationTitle(Conversation conv, String currentUserId, Map<String, User> userMap) {
@@ -195,7 +247,6 @@ public class ConversationService {
             return conv.getTitle();
         }
 
-        // DM: show other user's display name
         return userMap.values().stream()
                 .filter(u -> !u.getId().equals(currentUserId))
                 .map(User::getDisplayName)
@@ -203,12 +254,26 @@ public class ConversationService {
                 .orElse("Unknown");
     }
 
-    private CreateConversationResponse mapToResponse(Conversation conversation) {
+    private CreateConversationResponse mapToResponse(Conversation conversation, String currentUserId) {
         CreateConversationResponse response = new CreateConversationResponse();
         response.setId(conversation.getId());
         response.setType(conversation.getType());
-        response.setTitle(conversation.getTitle());
         response.setCreatedAt(conversation.getCreatedAt());
+
+        if (conversation.getType() == ConversationType.GROUP) {
+            response.setTitle(conversation.getTitle());
+        } else {
+            List<ConversationMember> members = memberRepository.findByConversationId(conversation.getId());
+            Map<String, User> userMap = getUserMap(members);
+
+            String otherUserDisplayName = userMap.values().stream()
+                    .filter(u -> !u.getId().equals(currentUserId))
+                    .map(User::getDisplayName)
+                    .findFirst()
+                    .orElse("Unknown");
+
+            response.setTitle(otherUserDisplayName);
+        }
 
         return response;
     }
