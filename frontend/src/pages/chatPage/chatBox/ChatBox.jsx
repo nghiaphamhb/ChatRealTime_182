@@ -9,7 +9,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MessageBubble from "./MessageBubble";
 
 export default function ChatBox({ activeConv, socket }) {
@@ -20,6 +20,12 @@ export default function ChatBox({ activeConv, socket }) {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+
+  const endRef = useRef(null);
+
+  const scrollToEnd = (behavior = "smooth") => {
+    endRef.current?.scrollIntoView({ behavior, block: "end" });
+  };
 
   const handleSend = () => {
     const content = text.trim();
@@ -137,6 +143,12 @@ export default function ChatBox({ activeConv, socket }) {
     return () => socket.off("event", onEvent);
   }, [socket, activeConv]);
 
+  // auto scroll to the end message while updating
+  useEffect(() => {
+    if (loading) return;
+    scrollToEnd();
+  }, [messages, loading]);
+
   return (
     <Box
       sx={{
@@ -196,6 +208,8 @@ export default function ChatBox({ activeConv, socket }) {
           {messages.map((m) => (
             <MessageBubble key={m.id} msg={m} isMine={m.isMine} />
           ))}
+
+          <div ref={endRef}></div>
         </Stack>
       </Box>
 
