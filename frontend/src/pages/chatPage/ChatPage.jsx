@@ -150,7 +150,30 @@ export default function ChatPage() {
         activeConv={activeConv}
         createConversation={createConversation}
       />
-      {activeConv && <ChatBox activeConv={activeConv} socket={socket} />}
+      {activeConv ? (
+        <ChatBox activeConv={activeConv} socket={socket} />
+      ) : (
+        <Box
+          sx={{
+            flex: 1,
+            height: "100%",
+            bgcolor: "rgba(255,255,255,0.15)",
+            borderRadius: 3,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            backdropFilter: "blur(6px)",
+            opacity: 0.85,
+            border: "1px solid rgba(255,255,255,0.5)",
+            boxShadow: "0 0 30px rgba(0,0,0,0.5)",
+            color: "white",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          Select a chat to start messaging
+        </Box>
+      )}
     </Box>
   );
 }

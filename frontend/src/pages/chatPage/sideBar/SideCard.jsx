@@ -38,22 +38,26 @@ export default function SideCard({
               {lastMsg}
             </Typography>
 
-            <Box
-              sx={{
-                minWidth: 22,
-                height: 22,
-                borderRadius: 999,
-                bgcolor: "primary.main",
-                color: "white",
-                fontSize: 12,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                px: 0.8,
-              }}
-            >
-              {unreadCount}
-            </Box>
+            {unreadCount > 0 ? (
+              <Box
+                sx={{
+                  minWidth: 22,
+                  height: 22,
+                  borderRadius: 999,
+                  bgcolor: "rgba(255,255,255,0.5)",
+                  color: "white",
+                  fontSize: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  px: 0.8,
+                }}
+              >
+                {unreadCount}
+              </Box>
+            ) : (
+              <Box></Box>
+            )}
           </Stack>
         </Box>
       </Stack>
