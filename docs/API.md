@@ -49,7 +49,7 @@ Response:
 }
 ```
 
-### GET /me
+### GET /users/me
 
 Response:
 
