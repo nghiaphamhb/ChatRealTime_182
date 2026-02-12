@@ -7,7 +7,6 @@ import vn.nhtw420.webchat.dto.request.CreateConversationRequest;
 import vn.nhtw420.webchat.dto.response.ConversationDetailResponse;
 import vn.nhtw420.webchat.dto.response.ConversationListItemResponse;
 import vn.nhtw420.webchat.dto.response.CreateConversationResponse;
-import vn.nhtw420.webchat.exception.UserNotFoundException;
 import vn.nhtw420.webchat.repository.*;
 
 import java.time.Instant;
