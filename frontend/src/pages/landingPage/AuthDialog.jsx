@@ -28,10 +28,27 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import KeyIcon from "@mui/icons-material/Key";
 import SyncLockIcon from "@mui/icons-material/SyncLock";
 
-export default function AuthDialog({ open = false, handleClose }) {
-  const colorText = "rgba(255,255,255,0.5)";
-  const colorText_input = "#fff";
+const accentGradient =
+  "linear-gradient(135deg, #7F5AF0 0%, #5A4FCF 45%, #3B2F80 100%)";
+const accentGradientHover =
+  "linear-gradient(135deg, #9D7BFF 0%, #8B6BFF 50%, #5A3BFF 100%)";
 
+const inputSx = {
+  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.45)" },
+  "& .MuiInputLabel-root.Mui-focused": { color: "#9D7BFF" },
+  "& .MuiInputBase-input": { color: "#F1F5F9" },
+  "& .MuiInput-underline:before": {
+    borderBottomColor: "rgba(255,255,255,0.15)",
+  },
+  "& .MuiInput-underline:hover:before": {
+    borderBottomColor: "rgba(255,255,255,0.4)",
+  },
+  "& .MuiInput-underline:after": {
+    borderBottomColor: "#7F5AF0",
+  },
+};
+
+export default function AuthDialog({ open = false, handleClose }) {
   const navigate = useNavigate();
   const [isRegister, setRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -100,22 +117,50 @@ export default function AuthDialog({ open = false, handleClose }) {
     (isRegister && (!password || !repPassword || unMatchPassword)) ||
     (!isRegister && !password);
 
+  const iconColor = "rgba(255,255,255,0.35)";
+
   return (
     <Dialog
       open={open}
       onClose={handleClose}
       TransitionComponent={Zoom}
+      slotProps={{
+        backdrop: {
+          sx: {
+            backgroundColor: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(8px)",
+          },
+        },
+      }}
       PaperProps={{
         sx: {
-          width: 400,
+          width: 420,
           padding: 4,
-          borderRadius: 3,
-          border: "1px solid rgba(255,255,255,0.5)",
-          bgcolor: "rgba(255,255,255,0.15)",
-          backdropFilter: "blur(20px)",
-          boxShadow: "0 0 30px rgba(0,0,0,0.5)",
+          borderRadius: 4,
+          border: "1px solid rgba(127,90,240,0.2)",
+          bgcolor: "rgba(15,23,42,0.92)",
+          backdropFilter: "blur(30px)",
+          boxShadow:
+            "0 0 60px rgba(127,90,240,0.15), 0 25px 50px rgba(0,0,0,0.5)",
           overflow: "hidden",
-          color: "rgba(255,255,255,0.8)",
+          color: "rgba(255,255,255,0.85)",
+          position: "relative",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            background:
+              "linear-gradient(90deg, #7F5AF0, #2CB67D, #7F5AF0)",
+            backgroundSize: "200% 100%",
+            animation: "shimmer 3s ease-in-out infinite",
+          },
+          "@keyframes shimmer": {
+            "0%": { backgroundPosition: "100% 0" },
+            "100%": { backgroundPosition: "-100% 0" },
+          },
         },
       }}
     >
@@ -123,168 +168,174 @@ export default function AuthDialog({ open = false, handleClose }) {
         onClick={handleClose}
         sx={{
           position: "absolute",
-          top: 0,
-          right: 0,
-          width: 45,
-          height: 45,
-          borderRadius: "0 0 0 8px",
-          color: "#fff",
-          "&:hover": { bgcolor: "#162938" },
+          top: 8,
+          right: 8,
+          width: 36,
+          height: 36,
+          color: "rgba(255,255,255,0.4)",
+          transition: "all 0.2s",
+          "&:hover": {
+            color: "#fff",
+            bgcolor: "rgba(255,255,255,0.1)",
+          },
         }}
       >
-        <CloseIcon />
+        <CloseIcon fontSize="small" />
       </IconButton>
 
-      <Typography variant="h3" sx={{ mx: "auto", pb: 1 }}>
-        {isRegister ? "Register" : "Login"}
+      <Typography
+        variant="h4"
+        sx={{
+          mx: "auto",
+          pb: 2,
+          fontWeight: 800,
+          letterSpacing: "-0.02em",
+          background: "linear-gradient(135deg, #F1F5F9, #9D7BFF)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}
+      >
+        {isRegister ? "Register" : "Welcome back"}
       </Typography>
 
-      {/* Display name */}
-      {isRegister ? (
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+        {/* Display name */}
+        {isRegister ? (
+          <Box sx={{ display: "flex", alignItems: "flex-end" }}>
+            <BadgeIcon sx={{ mr: 1, my: 0.5, color: iconColor }} />
+            <TextField
+              fullWidth
+              id="display-name"
+              label="Display name"
+              variant="standard"
+              sx={inputSx}
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+          </Box>
+        ) : (
+          <></>
+        )}
+
+        {/* Username */}
         <Box sx={{ display: "flex", alignItems: "flex-end" }}>
-          <BadgeIcon sx={{ mr: 1, my: 0.5, color: colorText }} />
+          <AccountCircle sx={{ mr: 1, my: 0.5, color: iconColor }} />
           <TextField
             fullWidth
-            id="display-name"
-            label="Display name"
+            id="username"
+            label="Username"
             variant="standard"
-            sx={{
-              "& .MuiInputLabel-root": { color: colorText },
-              "& .MuiInputLabel-root.Mui-focused": { color: colorText_input },
-              "& .MuiInputBase-input": { color: colorText_input },
-
-              "& .MuiInput-underline:before": { borderBottomColor: colorText },
-              "& .MuiInput-underline:hover:before": {
-                borderBottomColor: colorText_input,
-              },
-              "& .MuiInput-underline:after": {
-                borderBottomColor: colorText_input,
-              },
-            }}
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            sx={inputSx}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
         </Box>
-      ) : (
-        <></>
-      )}
 
-      {/* Username */}
-      <Box sx={{ display: "flex", alignItems: "flex-end" }}>
-        <AccountCircle sx={{ mr: 1, my: 0.5, color: colorText }} />
-        <TextField
-          fullWidth
-          id="username"
-          label="Username"
-          variant="standard"
-          sx={{
-            "& .MuiInputLabel-root": { color: colorText },
-            "& .MuiInputLabel-root.Mui-focused": { color: colorText_input },
-            "& .MuiInputBase-input": { color: colorText_input },
-
-            "& .MuiInput-underline:before": { borderBottomColor: colorText },
-            "& .MuiInput-underline:hover:before": {
-              borderBottomColor: colorText_input,
-            },
-            "& .MuiInput-underline:after": {
-              borderBottomColor: colorText_input,
-            },
-          }}
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-      </Box>
-
-      {/* Password */}
-      <Box sx={{ display: "flex", alignItems: "flex-end" }}>
-        <KeyIcon sx={{ mr: 1, my: 0.5, color: colorText }} />
-        <FormControl fullWidth variant="standard">
-          <InputLabel
-            htmlFor="standard-adornment-password"
-            sx={{
-              color: colorText,
-              "&.Mui-focused": { color: colorText_input },
-            }}
-          >
-            Password
-          </InputLabel>
-          <Input
-            id="standard-adornment-password"
-            type={showPassword ? "text" : "password"}
-            sx={{
-              color: colorText_input,
-              "&:before": { borderBottomColor: colorText },
-              "&:hover:not(.Mui-disabled, .Mui-error):before": {
-                borderBottomColor: "rgba(255,255,255,0.8)",
-              },
-              "&:after": { borderBottomColor: colorText_input },
-              "& input::-ms-reveal, & input::-ms-clear": { display: "none" },
-            }}
-            endAdornment={
-              <InputAdornment position="end">
-                <IconButton
-                  onClick={handleClickShowPassword}
-                  edge="end"
-                  sx={{ color: colorText }}
-                >
-                  {showPassword ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              </InputAdornment>
-            }
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </FormControl>
-      </Box>
-
-      {/* Repeat password */}
-      {isRegister ? (
+        {/* Password */}
         <Box sx={{ display: "flex", alignItems: "flex-end" }}>
-          <SyncLockIcon sx={{ mr: 1, my: 0.5, color: colorText }} />
-          <FormControl fullWidth variant="standard" error={unMatchPassword}>
+          <KeyIcon sx={{ mr: 1, my: 0.5, color: iconColor }} />
+          <FormControl fullWidth variant="standard">
             <InputLabel
               htmlFor="standard-adornment-password"
               sx={{
-                color: colorText,
-                "&.Mui-focused": { color: colorText_input },
+                color: "rgba(255,255,255,0.45)",
+                "&.Mui-focused": { color: "#9D7BFF" },
               }}
             >
-              Repeat password
+              Password
             </InputLabel>
             <Input
               id="standard-adornment-password"
               type={showPassword ? "text" : "password"}
               sx={{
-                color: colorText_input,
-                "&:before": { borderBottomColor: colorText },
-                "&:hover:not(.Mui-disabled, .Mui-error):before": {
-                  borderBottomColor: "rgba(255,255,255,0.8)",
+                color: "#F1F5F9",
+                "&:before": {
+                  borderBottomColor: "rgba(255,255,255,0.15)",
                 },
-                "&:after": { borderBottomColor: colorText_input },
-                "& input::-ms-reveal, & input::-ms-clear": { display: "none" },
+                "&:hover:not(.Mui-disabled, .Mui-error):before": {
+                  borderBottomColor: "rgba(255,255,255,0.4)",
+                },
+                "&:after": { borderBottomColor: "#7F5AF0" },
+                "& input::-ms-reveal, & input::-ms-clear": {
+                  display: "none",
+                },
               }}
               endAdornment={
                 <InputAdornment position="end">
                   <IconButton
                     onClick={handleClickShowPassword}
                     edge="end"
-                    sx={{ color: colorText }}
+                    sx={{
+                      color: "rgba(255,255,255,0.35)",
+                      "&:hover": { color: "#9D7BFF" },
+                    }}
                   >
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
               }
-              value={repPassword}
-              onChange={(e) => setRepPassword(e.target.value)}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
-            <FormHelperText>
-              {unMatchPassword ? "Passwords do not match" : ""}
-            </FormHelperText>
           </FormControl>
         </Box>
-      ) : (
-        <></>
-      )}
+
+        {/* Repeat password */}
+        {isRegister ? (
+          <Box sx={{ display: "flex", alignItems: "flex-end" }}>
+            <SyncLockIcon sx={{ mr: 1, my: 0.5, color: iconColor }} />
+            <FormControl fullWidth variant="standard" error={unMatchPassword}>
+              <InputLabel
+                htmlFor="repeat-password"
+                sx={{
+                  color: "rgba(255,255,255,0.45)",
+                  "&.Mui-focused": { color: "#9D7BFF" },
+                }}
+              >
+                Repeat password
+              </InputLabel>
+              <Input
+                id="repeat-password"
+                type={showPassword ? "text" : "password"}
+                sx={{
+                  color: "#F1F5F9",
+                  "&:before": {
+                    borderBottomColor: "rgba(255,255,255,0.15)",
+                  },
+                  "&:hover:not(.Mui-disabled, .Mui-error):before": {
+                    borderBottomColor: "rgba(255,255,255,0.4)",
+                  },
+                  "&:after": { borderBottomColor: "#7F5AF0" },
+                  "& input::-ms-reveal, & input::-ms-clear": {
+                    display: "none",
+                  },
+                }}
+                endAdornment={
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={handleClickShowPassword}
+                      edge="end"
+                      sx={{
+                        color: "rgba(255,255,255,0.35)",
+                        "&:hover": { color: "#9D7BFF" },
+                      }}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                }
+                value={repPassword}
+                onChange={(e) => setRepPassword(e.target.value)}
+              />
+              <FormHelperText>
+                {unMatchPassword ? "Passwords do not match" : ""}
+              </FormHelperText>
+            </FormControl>
+          </Box>
+        ) : (
+          <></>
+        )}
+      </Box>
 
       {/* Check box */}
       {isRegister ? (
@@ -294,36 +345,41 @@ export default function AuthDialog({ open = false, handleClose }) {
           control={
             <Checkbox
               sx={{
-                color: colorText,
-                "&.Mui-checked": { color: colorText_input },
+                color: "rgba(255,255,255,0.3)",
+                "&.Mui-checked": { color: "#7F5AF0" },
               }}
             />
           }
           label="Remember login"
           sx={{
-            mt: 1,
-            color: colorText,
-            // '&:hover': { color: colorText_input }
+            mt: 1.5,
+            color: "rgba(255,255,255,0.5)",
           }}
         />
       )}
 
       <Button
         variant="contained"
+        fullWidth
         sx={{
-          my: 3,
-          borderRadius: 1,
-          background:
-            "linear-gradient(135deg, #7F5AF0 0%, #5A4FCF 45%, #3B2F80 100%)",
+          mt: 3,
+          mb: 2,
+          py: 1.4,
+          borderRadius: 2.5,
+          fontSize: "0.95rem",
+          fontWeight: 700,
+          background: accentGradient,
+          boxShadow: "0 8px 25px rgba(127,90,240,0.3)",
+          transition: "all 0.3s ease",
           "&:hover": {
-            background:
-              "linear-gradient(135deg, #9D7BFF 0%, #8B6BFF 50%, #5A3BFF 100%)",
+            background: "linear-gradient(135deg, #9D7BFF 0%, #8B6BFF 50%, #5A3BFF 100%)",
             boxShadow: "0 12px 38px rgba(157,123,255,0.45)",
+            transform: "translateY(-1px)",
           },
           "&.Mui-disabled": {
-            background: "rgba(255,255,255,0.10)",
-            color: "rgba(255,255,255,0.35)",
-            border: "1px solid rgba(255,255,255,0.10)",
+            background: "rgba(255,255,255,0.06)",
+            color: "rgba(255,255,255,0.25)",
+            border: "1px solid rgba(255,255,255,0.06)",
             boxShadow: "none",
           },
         }}
@@ -331,7 +387,7 @@ export default function AuthDialog({ open = false, handleClose }) {
         onClick={submit}
       >
         <LoginIcon sx={{ mr: 1 }} />
-        {isRegister ? "Register" : "Login"}
+        {isRegister ? "Create Account" : "Sign In"}
       </Button>
 
       {alert && (
@@ -340,28 +396,37 @@ export default function AuthDialog({ open = false, handleClose }) {
           sx={{
             mb: 1,
             borderRadius: 2,
-            opacity: 0.85,
+            bgcolor:
+              alert.type === "error"
+                ? "rgba(211,47,47,0.15)"
+                : "rgba(46,125,50,0.15)",
+            color: "#F1F5F9",
+            "& .MuiAlert-icon": { opacity: 0.8 },
           }}
         >
           {alert.msg}
         </Alert>
       )}
 
-      <Typography sx={{ mx: "auto", color: colorText }}>
+      <Typography
+        sx={{ mx: "auto", color: "rgba(255,255,255,0.45)", mt: 1 }}
+      >
         {isRegister ? "Already have an account?" : "No account yet?"}{" "}
         <Link
           component="button"
-          color={colorText_input}
           sx={{
+            color: "#9D7BFF",
             textDecoration: "none",
+            fontWeight: 600,
+            transition: "color 0.2s",
             "&:hover": {
               textDecoration: "none",
-              fontWeight: 600,
+              color: "#BDA4FF",
             },
           }}
           onClick={changeMode}
         >
-          {isRegister ? "Login now" : "Register now"}
+          {isRegister ? "Sign in" : "Register now"}
         </Link>
       </Typography>
     </Dialog>

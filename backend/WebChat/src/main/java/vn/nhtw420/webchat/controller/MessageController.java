@@ -7,6 +7,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import vn.nhtw420.webchat.dto.request.CreateMessageRequest;
 import vn.nhtw420.webchat.dto.request.UpdateMessageRequest;
+import vn.nhtw420.webchat.dto.response.CreateMessageResponse;
 import vn.nhtw420.webchat.dto.response.MessageDto;
 import vn.nhtw420.webchat.dto.response.MessagePageResponse;
 import vn.nhtw420.webchat.security.UserPrincipal;
@@ -28,12 +29,14 @@ public class MessageController {
     }
 
     @PostMapping
-    public ResponseEntity<MessageDto> createMessage(
+    public ResponseEntity<CreateMessageResponse> createMessage(
             @PathVariable String conversationId,
             @RequestBody CreateMessageRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
+        MessageDto message = messageService.createMessage(conversationId, principal.getUserId(), request);
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(messageService.createMessage(conversationId, principal.getUserId(), request));
+                .body(new CreateMessageResponse(message));
     }
 
     @PutMapping("/{messageId}")
