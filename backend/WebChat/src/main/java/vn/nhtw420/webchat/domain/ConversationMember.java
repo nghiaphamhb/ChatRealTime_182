@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Getter
@@ -21,6 +22,7 @@ public class ConversationMember {
 
     private MemberRole role;
     private String lastReadMessageId;
+    private Instant joinedAt;
 
     public ConversationMember() {
         this.id = UUID.randomUUID().toString();
